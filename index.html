@@ -341,6 +341,52 @@
       border-color: var(--lilac);
     }
 
+    .sheet-panel {
+      margin-top: 1.1rem;
+      padding: 1rem 1.2rem;
+      background: rgba(255, 255, 255, 0.55);
+      border-radius: 1.15rem;
+      border: 2px dashed rgba(196, 168, 255, 0.45);
+      box-shadow: 0 6px 24px var(--shadow);
+    }
+
+    .sheet-panel summary {
+      font-weight: 800;
+      font-size: 0.92rem;
+      cursor: pointer;
+      color: var(--ink);
+    }
+
+    .sheet-hint {
+      font-size: 0.82rem;
+      line-height: 1.45;
+      margin: 0.65rem 0 0.75rem;
+      opacity: 0.88;
+    }
+
+    .sheet-panel label {
+      margin-top: 0.5rem;
+    }
+
+    .sheet-panel input[type="url"],
+    .sheet-panel input[type="password"] {
+      width: 100%;
+      margin-top: 0.25rem;
+      margin-bottom: 0.5rem;
+      padding: 0.55rem 0.75rem;
+      border: 2px solid rgba(196, 168, 255, 0.35);
+      border-radius: 0.65rem;
+      font: inherit;
+    }
+
+    .sheet-status {
+      font-size: 0.8rem;
+      margin: 0.5rem 0 0;
+      min-height: 1.2em;
+      color: var(--leaf);
+      font-weight: 600;
+    }
+
     section.list {
       margin-top: 1.65rem;
     }
@@ -677,6 +723,99 @@
       }
     }
 
+    const GAS_URL_KEY = "phieu_gas_webapp_url";
+    const GAS_SECRET_KEY = "phieu_gas_secret";
+
+    /**
+     * URL Web App sau Deploy (dạng …/macros/s/…/exec). Sheet dữ liệu:
+     * https://docs.google.com/spreadsheets/d/1sOvBd6vZInom1XPNnQE6Howl0WBmoWUITdJHqp1lnAQ
+     * Để trống thì dán URL vào ô bên dưới (hoặc localStorage).
+     */
+    const DEFAULT_GAS_WEBAPP_URL = "";
+
+    /** Trùng biến SECRET trong google-apps-script/Code.gs */
+    const DEFAULT_GAS_SECRET = "doi-mat-khau-bi-mat-day-du-ky-tu";
+
+    function getSheetConfig() {
+      let url = "";
+      let secret = "";
+      try {
+        url = (localStorage.getItem(GAS_URL_KEY) || "").trim();
+        secret = (localStorage.getItem(GAS_SECRET_KEY) || "").trim();
+      } catch {
+        /* ignore */
+      }
+      if (!url) url = (DEFAULT_GAS_WEBAPP_URL || "").trim();
+      if (!secret) secret = (DEFAULT_GAS_SECRET || "").trim();
+      return { url, secret };
+    }
+
+    function sheetGetUrl(base, secret) {
+      try {
+        const u = new URL(base);
+        u.searchParams.set("secret", secret);
+        return u.toString();
+      } catch {
+        return base;
+      }
+    }
+
+    /** @returns {Promise<null | { id: string, at: string, note: string }[]>} */
+    async function fetchSheetEntries() {
+      const { url, secret } = getSheetConfig();
+      if (!url || !secret) return null;
+      try {
+        const r = await fetch(sheetGetUrl(url, secret), {
+          cache: "no-store",
+          redirect: "follow",
+        });
+        const t = await r.text();
+        const j = JSON.parse(t);
+        if (!j.ok || !Array.isArray(j.items)) return null;
+        return j.items;
+      } catch {
+        return null;
+      }
+    }
+
+    /** @param {{ id: string, at: string, note: string }} entry */
+    async function sheetAppend(entry) {
+      const { url, secret } = getSheetConfig();
+      if (!url || !secret) return false;
+      try {
+        const r = await fetch(url, {
+          method: "POST",
+          redirect: "follow",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ secret, action: "append", entry }),
+        });
+        const t = await r.text();
+        const j = JSON.parse(t);
+        return j.ok === true;
+      } catch {
+        return false;
+      }
+    }
+
+    /** @param {{ id: string, at: string, note: string }[]} items */
+    async function sheetReplaceAll(items) {
+      const { url, secret } = getSheetConfig();
+      if (!url || !secret) return false;
+      try {
+        const r = await fetch(url, {
+          method: "POST",
+          redirect: "follow",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ secret, action: "replace", items }),
+        });
+        const t = await r.text();
+        const j = JSON.parse(t);
+        return j.ok === true;
+      } catch {
+        return false;
+      }
+    }
+
     /** @returns {{ id: string, at: string, note: string }[]} */
     function load() {
       try {
@@ -983,15 +1122,18 @@
       if (li.classList.contains("ticket--leave")) return;
       if (deleteInFlight) return;
 
-      const applyDelete = () => {
+      const applyDelete = async () => {
         const next = load().filter((x) => x.id !== id);
         mirrorLocal(next);
+        await probeServer();
         if (serverOk) void serverPutAll(next);
+        const g = getSheetConfig();
+        if (g.url && g.secret) void sheetReplaceAll(next);
         render();
       };
 
       if (prefersReducedMotion()) {
-        applyDelete();
+        void applyDelete();
         return;
       }
 
@@ -1004,7 +1146,7 @@
         committed = true;
         deleteInFlight = false;
         listEl.classList.remove("tickets-flying");
-        applyDelete();
+        void applyDelete();
       };
 
       li.classList.add("ticket--leave");
@@ -1024,7 +1166,7 @@
       }, 480);
     });
 
-    function addEntry() {
+    async function addEntry() {
       const note = noteEl.value.trim();
       if (!note) {
         noteEl.focus();
@@ -1038,21 +1180,35 @@
       const items = [item, ...load()];
       lastAddedId = item.id;
       mirrorLocal(items);
+      await probeServer();
       if (serverOk) {
-        void serverAppend(item).then((ok) => {
-          if (!ok) serverOk = false;
-        });
+        const okSrv = await serverAppend(item);
+        if (!okSrv) serverOk = false;
+      }
+      const g = getSheetConfig();
+      const st = document.getElementById("gasStatus");
+      if (g.url && g.secret) {
+        const sheetOk = await sheetAppend(item);
+        if (st) {
+          st.textContent = sheetOk
+            ? "Đã ghi vào Google Sheet."
+            : "Chưa ghi được Sheet — kiểm tra URL Web App và Deploy (Anyone).";
+        }
+      } else if (st && !g.url) {
+        st.textContent = "Chưa có URL Web App — mở mục Sheet phía trên và dán URL …/exec";
       }
       noteEl.value = "";
       noteEl.focus();
       render();
     }
 
-    addBtn.addEventListener("click", addEntry);
+    addBtn.addEventListener("click", () => {
+      void addEntry();
+    });
     noteEl.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        addEntry();
+        void addEntry();
       }
     });
 
@@ -1061,9 +1217,53 @@
       noteEl.focus();
     });
 
-    render();
+    function loadGasInputs() {
+      const u = document.getElementById("gasUrl");
+      const s = document.getElementById("gasSecret");
+      if (u) u.value = localStorage.getItem(GAS_URL_KEY) || "";
+      if (s) s.value = localStorage.getItem(GAS_SECRET_KEY) || "";
+    }
 
-    (async function reconcileDiskAndLocal() {
+    /** @type {ReturnType<typeof setTimeout> | null} */
+    let gasPersistTimer = null;
+
+    function scheduleGasPersistSync() {
+      if (gasPersistTimer !== null) {
+        window.clearTimeout(gasPersistTimer);
+      }
+      gasPersistTimer = window.setTimeout(async () => {
+        gasPersistTimer = null;
+        const uEl = document.getElementById("gasUrl");
+        const sEl = document.getElementById("gasSecret");
+        const st = document.getElementById("gasStatus");
+        const url = (uEl?.value || "").trim();
+        const sec = (sEl?.value || "").trim();
+        try {
+          localStorage.setItem(GAS_URL_KEY, url);
+          localStorage.setItem(GAS_SECRET_KEY, sec);
+        } catch (_) {}
+        const cfg = getSheetConfig();
+        if (!cfg.url) {
+          if (st) st.textContent = "";
+          await runReconcile();
+          return;
+        }
+        if (st) st.textContent = "Đang đồng bộ Sheet…";
+        await runReconcile();
+        const probe = await fetchSheetEntries();
+        if (st) {
+          st.textContent =
+            probe !== null
+              ? "Đã lưu — Sheet OK."
+              : "Đã lưu — chưa đọc được Sheet (URL / SECRET / Deploy Anyone).";
+        }
+      }, 450);
+    }
+
+    document.getElementById("gasUrl")?.addEventListener("input", scheduleGasPersistSync);
+    document.getElementById("gasSecret")?.addEventListener("input", scheduleGasPersistSync);
+
+    async function runReconcile() {
       await restoreDiskHandle();
       await probeServer();
 
@@ -1071,9 +1271,15 @@
       const fromRealDisk = await readDiskJson();
       const fromOpfs = await opfsRead();
       const fromLs = load();
+      const cfg = getSheetConfig();
+      let fromSheet = null;
+      if (cfg.url && cfg.secret) {
+        fromSheet = await fetchSheetEntries();
+      }
 
       const m0 = mergeById(mergeById(fromLs, fromOpfs ?? []), fromRealDisk ?? []);
-      const merged = serverOk ? mergeById(m0, fromSrv) : m0;
+      const m1 = serverOk ? mergeById(m0, fromSrv) : m0;
+      const merged = fromSheet !== null ? mergeById(m1, fromSheet) : m1;
 
       const norm = (arr) =>
         JSON.stringify([...arr].sort((x, y) => x.id.localeCompare(y.id)));
@@ -1082,13 +1288,21 @@
         if (serverOk && norm(merged) !== norm(fromSrv)) {
           await serverPutAll(merged);
         }
+        if (cfg.url && cfg.secret && fromSheet !== null && norm(merged) !== norm(fromSheet)) {
+          await sheetReplaceAll(merged);
+        }
         render();
       } else if (!serverOk && fromOpfs == null && fromLs.length > 0) {
         await opfsWrite(fromLs);
       } else if (diskHandle && fromRealDisk == null && fromLs.length > 0) {
         await writeDisk(fromLs);
       }
-    })();
+    }
+
+    loadGasInputs();
+    render();
+
+    void runReconcile();
   </script>
 </body>
 </html>

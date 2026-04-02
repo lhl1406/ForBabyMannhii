@@ -1,3 +1,4 @@
+import { createClient } from "@libsql/client";
 import http from "node:http";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -10,8 +11,41 @@ const PORT_START = Number(process.env.PORT) || 3333;
 const PORT_TRY_MAX = 30;
 let listenPort = PORT_START;
 
+const TURSO_URL = (
+  process.env.TURSO_DATABASE_URL ||
+  process.env.LIBSQL_DATABASE_URL ||
+  ""
+).trim();
+const TURSO_TOKEN = (process.env.TURSO_AUTH_TOKEN || "").trim();
+const useTurso = Boolean(TURSO_URL && TURSO_TOKEN);
+
+/** @type {import("@libsql/client").Client | null} */
+let turso = null;
+
+async function initTurso() {
+  if (!useTurso) return;
+  turso = createClient({ url: TURSO_URL, authToken: TURSO_TOKEN });
+  await turso.execute(`
+    CREATE TABLE IF NOT EXISTS phieu_entries (
+      id TEXT PRIMARY KEY NOT NULL,
+      at TEXT NOT NULL,
+      note TEXT NOT NULL
+    )
+  `);
+}
+
 /** @returns {Promise<{ id: string, at: string, note: string }[]>} */
 async function readAllEntries() {
+  if (turso) {
+    const r = await turso.execute(
+      "SELECT id, at, note FROM phieu_entries ORDER BY at DESC"
+    );
+    return r.rows.map((row) => ({
+      id: String(row.id ?? ""),
+      at: String(row.at ?? ""),
+      note: String(row.note ?? ""),
+    }));
+  }
   let raw;
   try {
     raw = await fs.readFile(DATA, "utf8");
@@ -43,12 +77,38 @@ async function readAllEntries() {
 
 /** @param {{ id: string, at: string, note: string }} entry */
 async function appendEntry(entry) {
+  if (turso) {
+    await turso.execute({
+      sql: `INSERT INTO phieu_entries (id, at, note) VALUES (?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              at = excluded.at,
+              note = excluded.note`,
+      args: [entry.id, entry.at, entry.note],
+    });
+    return;
+  }
   const line = JSON.stringify(entry) + "\n";
   await fs.appendFile(DATA, line, "utf8");
 }
 
 /** @param {{ id: string, at: string, note: string }[]} items */
 async function writeAllEntries(items) {
+  if (turso) {
+    const tx = await turso.transaction("write");
+    try {
+      await tx.execute({ sql: "DELETE FROM phieu_entries", args: [] });
+      for (const x of items) {
+        await tx.execute({
+          sql: "INSERT INTO phieu_entries (id, at, note) VALUES (?, ?, ?)",
+          args: [x.id, x.at, x.note],
+        });
+      }
+      await tx.commit();
+    } finally {
+      tx.close();
+    }
+    return;
+  }
   const body =
     items.map((x) => JSON.stringify(x)).join("\n") + (items.length ? "\n" : "");
   await fs.writeFile(DATA, body, "utf8");
@@ -142,7 +202,9 @@ const server = http.createServer(async (req, res) => {
       }
       sendJson(res, 405, { error: "method not allowed" });
     } catch (e) {
-      sendJson(res, 500, { error: e instanceof Error ? e.message : String(e) });
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[api/entries]", req.method, msg, e);
+      sendJson(res, 500, { error: msg });
     }
     return;
   }
@@ -190,7 +252,16 @@ function logReady() {
   const p =
     addr && typeof addr === "object" && "port" in addr ? addr.port : listenPort;
   console.log(`Mở trình duyệt: http://localhost:${p}`);
-  console.log(`File dữ liệu (tự tạo khi tích đầu tiên): ${DATA}`);
+  if (turso) {
+    console.log("Lưu trữ: Turso (bảng phieu_entries)");
+  } else {
+    console.log(`File dữ liệu (tự tạo khi tích đầu tiên): ${DATA}`);
+    if (TURSO_URL && !TURSO_TOKEN) {
+      console.warn(
+        "Có TURSO_DATABASE_URL nhưng thiếu TURSO_AUTH_TOKEN → dùng file JSONL."
+      );
+    }
+  }
 }
 
 server.on("error", (err) => {
@@ -212,4 +283,11 @@ server.on("error", (err) => {
   process.exit(1);
 });
 
-server.listen(listenPort, logReady);
+initTurso()
+  .then(() => {
+    server.listen(listenPort, logReady);
+  })
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
