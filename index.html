@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phiếu bé ngoan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper: #fffdf8;
+      --ink: #4a3f55;
+      --accent: #ff6b8a;
+      --accent-soft: #ffe0e8;
+      --leaf: #45b892;
+      --leaf-soft: #d4f5ea;
+      --lilac: #c4a8ff;
+      --lilac-soft: #efe8ff;
+      --peach: #ffcba4;
+      --shadow: rgba(74, 63, 85, 0.1);
+      --ticket-a: linear-gradient(145deg, #fff8fc 0%, #fff0f5 50%, #f5faff 100%);
+      --ticket-b: linear-gradient(145deg, #f5fff9 0%, #e8fdf5 45%, #fffaf0 100%);
+      --ticket-c: linear-gradient(145deg, #faf5ff 0%, #f0e8ff 50%, #fff5f8 100%);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    @keyframes bg-drift {
+      0%,
+      100% {
+        background-position: 0% 40%;
+      }
+      50% {
+        background-position: 100% 60%;
+      }
+    }
+
+    @keyframes floaty {
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-5px);
+      }
+    }
+
+    @keyframes wiggle {
+      0%,
+      100% {
+        transform: rotate(-2deg);
+      }
+      50% {
+        transform: rotate(2deg);
+      }
+    }
+
+    @keyframes sparkle {
+      0%,
+      100% {
+        opacity: 0.35;
+        transform: scale(0.9);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.15);
+      }
+    }
+
+    @keyframes card-in {
+      from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes ticket-pop {
+      0% {
+        opacity: 0;
+        transform: scale(0.88) translateY(10px);
+      }
+      65% {
+        transform: scale(1.02) translateY(0);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @keyframes btn-pulse {
+      0%,
+      100% {
+        box-shadow: 0 4px 0 #2d8f6c, 0 6px 20px rgba(69, 184, 146, 0.35);
+      }
+      50% {
+        box-shadow: 0 4px 0 #2d8f6c, 0 8px 28px rgba(69, 184, 146, 0.5);
+      }
+    }
+
+    @keyframes empty-bounce {
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-6px);
+      }
+    }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: Nunito, system-ui, sans-serif;
+      color: var(--ink);
+      padding: 1.25rem;
+      background: linear-gradient(125deg, #ffe8f0 0%, #fff5e0 25%, #e5f9f0 55%, #ede8ff 100%);
+      background-size: 220% 220%;
+      animation: bg-drift 14s ease-in-out infinite;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.45) 0%, transparent 38%),
+        radial-gradient(circle at 85% 10%, rgba(255, 200, 220, 0.35) 0%, transparent 35%),
+        radial-gradient(circle at 70% 85%, rgba(196, 168, 255, 0.2) 0%, transparent 40%);
+      z-index: 0;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 32rem;
+      margin: 0 auto;
+      animation: card-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+
+    .title-row {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      animation: floaty 4s ease-in-out infinite;
+    }
+
+    h1 {
+      font-family: Fredoka, system-ui, sans-serif;
+      font-size: clamp(1.85rem, 5.5vw, 2.25rem);
+      font-weight: 700;
+      margin: 0 0 0.35rem;
+      letter-spacing: -0.02em;
+      background: linear-gradient(120deg, #ff6b8a, #ff9eb5 40%, #45b892 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 2px 0 rgba(255, 255, 255, 0.8));
+    }
+
+    @keyframes name-bounce-soft {
+      0%,
+      100% {
+        transform: translateY(0) rotate(0deg) scale(1);
+      }
+      30% {
+        transform: translateY(-5px) rotate(-2deg) scale(1.04);
+      }
+      60% {
+        transform: translateY(-2px) rotate(2deg) scale(1.02);
+      }
+    }
+
+    @keyframes name-shimmer-bg {
+      0%,
+      100% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+    }
+
+    h1 .name-highlight {
+      display: inline-block;
+      background: linear-gradient(
+        105deg,
+        #ff4d7d 0%,
+        #ffb3d9 28%,
+        #7ee8c5 55%,
+        #c4b5fd 78%,
+        #ff4d7d 100%
+      );
+      background-size: 220% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: name-bounce-soft 2.2s ease-in-out infinite, name-shimmer-bg 5s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    .title-star {
+      font-size: 1.35rem;
+      display: inline-block;
+      animation: sparkle 1.8s ease-in-out infinite;
+    }
+
+    .title-star:nth-of-type(2) {
+      animation-delay: 0.35s;
+    }
+
+    .sub {
+      font-size: 0.9rem;
+      opacity: 0.82;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .intro-blurb {
+      max-width: 26rem;
+      margin: 0.75rem auto 0.85rem;
+      padding: 0.9rem 1.1rem;
+      font-size: 0.92rem;
+      line-height: 1.55;
+      font-weight: 600;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.72);
+      border-radius: 1.1rem;
+      border: 2px dashed rgba(255, 155, 180, 0.4);
+      box-shadow: 0 4px 20px rgba(255, 150, 180, 0.1);
+    }
+
+    .intro-blurb strong {
+      color: #e04d7a;
+      font-weight: 800;
+    }
+
+    .intro-blurb .for-mn {
+      color: #3a9e7a;
+      font-weight: 800;
+    }
+
+    .card {
+      background: var(--paper);
+      border-radius: 1.35rem;
+      padding: 1.35rem;
+      box-shadow: 0 10px 40px var(--shadow), 0 0 0 3px rgba(255, 182, 200, 0.25);
+      border: 2px dashed rgba(255, 155, 180, 0.45);
+      animation: card-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.08s backwards;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      font-size: 0.88rem;
+      margin-bottom: 0.45rem;
+      color: var(--ink);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 4.5rem;
+      padding: 0.85rem 1rem;
+      border: 2px solid rgba(196, 168, 255, 0.35);
+      border-radius: 1rem;
+      font: inherit;
+      resize: vertical;
+      background: #fff;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--leaf);
+      box-shadow: 0 0 0 4px rgba(69, 184, 146, 0.2);
+      transform: scale(1.01);
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 0.6rem;
+      margin-top: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      border-radius: 999px;
+      padding: 0.7rem 1.2rem;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+
+    .btn-primary {
+      background: linear-gradient(180deg, #5ed4a8 0%, var(--leaf) 100%);
+      color: #fff;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      animation: btn-pulse 2.5s ease-in-out infinite;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.06);
+      transform: translateY(-2px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      animation: none;
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.65);
+      color: var(--ink);
+      border: 2px dashed rgba(74, 63, 85, 0.2);
+    }
+
+    .btn-ghost:hover {
+      background: #fff;
+      border-style: solid;
+      border-color: var(--lilac);
+    }
+
+    section.list {
+      margin-top: 1.65rem;
+    }
+
+    .list h2 {
+      font-family: Fredoka, system-ui, sans-serif;
+      font-size: 1.2rem;
+      margin: 0 0 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .list h2::before {
+      content: "✿";
+      color: var(--accent);
+      font-size: 1rem;
+      animation: wiggle 2s ease-in-out infinite;
+    }
+
+    ul#entries {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    ul#entries.tickets-flying {
+      pointer-events: none;
+      position: relative;
+      z-index: 2;
+    }
+
+    ul#entries.tickets-flying .ticket {
+      z-index: var(--fly-z, 1);
+    }
+
+    .ticket {
+      position: relative;
+      list-style: none;
+      border-radius: 1.15rem;
+      padding: 1rem 1rem 1rem 2.75rem;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.45rem 0.75rem;
+      align-items: start;
+      border: 2px dashed rgba(255, 140, 170, 0.45);
+      box-shadow: 0 6px 24px rgba(255, 150, 180, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+      overflow: hidden;
+      backface-visibility: hidden;
+    }
+
+    .ticket:nth-child(3n + 1) {
+      background: var(--ticket-a);
+    }
+
+    .ticket:nth-child(3n + 2) {
+      background: var(--ticket-b);
+    }
+
+    .ticket:nth-child(3n + 3) {
+      background: var(--ticket-c);
+    }
+
+    .ticket::before {
+      content: "";
+      position: absolute;
+      left: 0.85rem;
+      top: 50%;
+      width: 14px;
+      height: 14px;
+      margin-top: -7px;
+      border-radius: 50%;
+      background: linear-gradient(125deg, #ffe8f0 0%, #e5f9f0 100%);
+      box-shadow: inset 0 0 0 3px rgba(255, 155, 180, 0.55), 0 2px 6px rgba(74, 63, 85, 0.08);
+    }
+
+    .ticket::after {
+      content: "★";
+      position: absolute;
+      top: 0.5rem;
+      right: 0.55rem;
+      font-size: 0.95rem;
+      color: #ffd966;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+      animation: sparkle 2.2s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .ticket:hover {
+      transform: translateY(-3px) rotate(-0.5deg) scale(1.01);
+      box-shadow: 0 12px 32px rgba(255, 150, 180, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    .ticket--pop {
+      animation: ticket-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes ticket-leave {
+      from {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+        filter: blur(0);
+      }
+      to {
+        opacity: 0;
+        transform: translate3d(32px, -18px, 0) scale(0.88) rotate(6deg);
+        filter: blur(1.5px);
+      }
+    }
+
+    .ticket.ticket--leave {
+      transition: none !important;
+      pointer-events: none;
+      z-index: 5;
+      animation: ticket-leave 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      will-change: transform, opacity, filter;
+    }
+
+    .ticket.ticket--leave::after {
+      animation: none;
+      opacity: 0.5;
+    }
+
+    .ticket.ticket--leave:hover {
+      transform: translate3d(0, 0, 0) scale(1);
+      box-shadow: 0 6px 24px rgba(255, 150, 180, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    }
+
+    .ticket .time {
+      font-size: 0.78rem;
+      color: var(--leaf);
+      font-weight: 700;
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .ticket .time::before {
+      content: "🕐";
+      font-size: 0.72rem;
+    }
+
+    .ticket .note {
+      font-size: 0.98rem;
+      line-height: 1.5;
+      word-break: break-word;
+      font-weight: 600;
+      padding-right: 1.5rem;
+    }
+
+    .ticket .del {
+      padding: 0.4rem 0.65rem;
+      font-size: 0.78rem;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 999px;
+      align-self: start;
+      font-weight: 700;
+      border: 2px solid rgba(255, 107, 138, 0.25);
+      transition: background 0.2s, color 0.2s, transform 0.2s;
+    }
+
+    .ticket .del:hover {
+      background: var(--accent);
+      color: #fff;
+      transform: scale(1.05);
+    }
+
+    .empty {
+      text-align: center;
+      padding: 2.25rem 1rem;
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: var(--ink);
+      opacity: 0.72;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 1.25rem;
+      border: 2px dashed rgba(196, 168, 255, 0.35);
+    }
+
+    .empty::before {
+      content: "🌟";
+      display: block;
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      animation: empty-bounce 2s ease-in-out infinite;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 0.55rem;
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #fff;
+      background: linear-gradient(90deg, var(--leaf), #5ed4a8);
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      box-shadow: 0 3px 12px rgba(69, 184, 146, 0.35);
+      animation: wiggle 3s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      body,
+      .title-star,
+      h1 .name-highlight,
+      .badge,
+      .list h2::before,
+      .ticket::after,
+      .empty::before,
+      .btn-primary {
+        animation: none !important;
+      }
+
+      .ticket:hover,
+      .btn-primary:hover,
+      .btn-ghost:hover {
+        transform: none;
+      }
+
+      .wrap,
+      .card,
+      .ticket--pop {
+        animation: none !important;
+      }
+
+      .ticket.ticket--leave {
+        animation: none !important;
+        opacity: 0;
+        transform: none;
+        filter: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title-row">
+        <span class="title-star" aria-hidden="true">✨</span>
+        <h1>Phiếu bé ngoan cho <span class="name-highlight" translate="no">Mẫn Nhi</span></h1>
+        <span class="title-star" aria-hidden="true">✨</span>
+      </div>
+      <p class="intro-blurb">
+        Phiếu này <strong>dùng được cho bất cứ điều gì</strong> — việc nhỏ hay lớn,... miễn là Mẫn Nhi thấy vui và cố gắng.
+        Toàn bộ những lần tích ở đây đều là <span class="for-mn" translate="no">dành riêng cho Mẫn Nhi</span>.
+      </p>
+      <span class="badge">Vô hạn</span>
+    </header>
+
+    <div class="card">
+      <label for="note">Điều đã làm</label>
+      <textarea id="note" placeholder="Ví dụ: dọn đồ chơi, giúp mẹ rửa bát…" rows="3"></textarea>
+      <div class="row-actions">
+        <button type="button" class="btn-primary" id="addBtn">Tích phiếu</button>
+        <button type="button" class="btn-ghost" id="clearDraft">Xoá ô nhập</button>
+      </div>
+    </div>
+
+    <section class="list" aria-live="polite">
+      <h2>Đã ghi nhận</h2>
+      <ul id="entries"></ul>
+      <p class="empty" id="emptyState">Chưa có phiếu nào. Nhấn «Tích phiếu» sau khi ghi điều bé đã làm.</p>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "phieu-be-ngoan-v1";
+    /** Tên file trong OPFS (bản ẩn trình duyệt). */
+    const BACKUP_FILE = "phieu-be-ngoan-data.json";
+
+    let serverOk = false;
+    const IDB_NAME = "phieu-be-ngoan-idb";
+    const IDB_VER = 1;
+    const IDB_STORE = "kv";
+    const HANDLE_KEY = "diskFileHandle";
+
+    /** @type {FileSystemFileHandle | null} */
+    let diskHandle = null;
+
+    async function probeServer() {
+      try {
+        const r = await fetch("/api/entries", { method: "GET", cache: "no-store" });
+        serverOk = r.ok;
+        return r.ok;
+      } catch {
+        serverOk = false;
+        return false;
+      }
+    }
+
+    /** @returns {Promise<null | { id: string, at: string, note: string }[]>} */
+    async function fetchServerEntries() {
+      try {
+        const r = await fetch("/api/entries", { cache: "no-store" });
+        if (!r.ok) return null;
+        const data = await r.json();
+        return Array.isArray(data) ? data : null;
+      } catch {
+        return null;
+      }
+    }
+
+    /** @param {{ id: string, at: string, note: string }} entry */
+    async function serverAppend(entry) {
+      try {
+        const r = await fetch("/api/entries", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(entry),
+        });
+        return r.ok;
+      } catch {
+        return false;
+      }
+    }
+
+    /** @param {{ id: string, at: string, note: string }[]} items */
+    async function serverPutAll(items) {
+      try {
+        const r = await fetch("/api/entries", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(items),
+        });
+        return r.ok;
+      } catch {
+        return false;
+      }
+    }
+
+    /** @returns {{ id: string, at: string, note: string }[]} */
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const data = JSON.parse(raw);
+        return Array.isArray(data) ? data : [];
+      } catch {
+        return [];
+      }
+    }
+
+    /** @param {{ id: string, at: string, note: string }[]} a @param {typeof a} b */
+    function mergeById(a, b) {
+      const m = new Map();
+      for (const x of a) m.set(x.id, x);
+      for (const x of b) m.set(x.id, x);
+      return [...m.values()];
+    }
+
+    /** @returns {Promise<null | { id: string, at: string, note: string }[]>} */
+    async function opfsRead() {
+      const getDir = navigator.storage?.getDirectory;
+      if (typeof getDir !== "function") return null;
+      try {
+        const root = await getDir.call(navigator.storage);
+        const fh = await root.getFileHandle(BACKUP_FILE);
+        const file = await fh.getFile();
+        const text = await file.text();
+        if (!text.trim()) return [];
+        const data = JSON.parse(text);
+        return Array.isArray(data) ? data : null;
+      } catch (e) {
+        if (e && e.name === "NotFoundError") return null;
+        return null;
+      }
+    }
+
+    /** @param {{ id: string, at: string, note: string }[]} items */
+    async function opfsWrite(items) {
+      const getDir = navigator.storage?.getDirectory;
+      if (typeof getDir !== "function") return;
+      try {
+        const root = await getDir.call(navigator.storage);
+        const fh = await root.getFileHandle(BACKUP_FILE, { create: true });
+        const w = await fh.createWritable();
+        await w.write(JSON.stringify(items));
+        await w.close();
+      } catch (_) {
+        /* private mode / quota / file:// */
+      }
+    }
+
+    function idbOpen() {
+      return new Promise((resolve, reject) => {
+        const r = indexedDB.open(IDB_NAME, IDB_VER);
+        r.onerror = () => reject(r.error);
+        r.onupgradeneeded = (ev) => {
+          const db = ev.target.result;
+          if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+        };
+        r.onsuccess = () => resolve(r.result);
+      });
+    }
+
+    /** @param {string} key */
+    async function idbGet(key) {
+      const db = await idbOpen();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, "readonly");
+        const req = tx.objectStore(IDB_STORE).get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function restoreDiskHandle() {
+      try {
+        const h = await idbGet(HANDLE_KEY);
+        if (h && typeof h.getFile === "function") {
+          diskHandle = h;
+          return true;
+        }
+      } catch (_) {}
+      diskHandle = null;
+      return false;
+    }
+
+    /** @returns {Promise<null | { id: string, at: string, note: string }[]>} */
+    async function readDiskJson() {
+      if (!diskHandle) return null;
+      try {
+        const file = await diskHandle.getFile();
+        const text = await file.text();
+        if (!text.trim()) return [];
+        const data = JSON.parse(text);
+        return Array.isArray(data) ? data : null;
+      } catch {
+        return null;
+      }
+    }
+
+    /** @param {{ id: string, at: string, note: string }[]} items */
+    async function writeDisk(items) {
+      if (!diskHandle) return;
+      try {
+        let perm = await diskHandle.queryPermission({ mode: "readwrite" });
+        if (perm === "prompt") {
+          perm = await diskHandle.requestPermission({ mode: "readwrite" });
+        }
+        if (perm !== "granted") return;
+        const w = await diskHandle.createWritable();
+        await w.write(JSON.stringify(items, null, 2));
+        await w.close();
+      } catch (_) {}
+    }
+
+    /** @param {{ id: string, at: string, note: string }[]} items */
+    function mirrorLocal(items) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      } catch (_) {}
+      void opfsWrite(items);
+      void writeDisk(items);
+    }
+
+    /** @param {{ id: string, at: string, note: string }[]} items */
+    function save(items) {
+      mirrorLocal(items);
+    }
+
+    function formatViDateTime(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      return new Intl.DateTimeFormat("vi-VN", {
+        weekday: "short",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(d);
+    }
+
+    const listEl = document.getElementById("entries");
+    const emptyEl = document.getElementById("emptyState");
+    const noteEl = document.getElementById("note");
+    const addBtn = document.getElementById("addBtn");
+
+    /** @type {string | null} */
+    let lastAddedId = null;
+    /** Đã chạy hiệu ứng “rơi → xếp” trong phiên này (reset khi xoá hết phiếu). */
+    let ticketsEntranceDone = false;
+    /** @type {ReturnType<typeof setTimeout> | null} */
+    let entranceDebounce = null;
+
+    function prefersReducedMotion() {
+      return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+
+    /**
+     * FLIP chỉ bằng transform (GPU): phiếu vẫn trong layout, nhìn như ở điểm ngẫu nhiên rồi trôi về chỗ cũ — không dùng left/top nên ít giật.
+     */
+    function runTicketsScatterSettle() {
+      const nodes = /** @type {HTMLElement[]} */ ([...listEl.querySelectorAll(".ticket")]);
+      if (nodes.length === 0) return;
+
+      nodes.forEach((el) => el.classList.remove("ticket--pop"));
+
+      const rects = nodes.map((el) => el.getBoundingClientRect());
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const docH = Math.max(vh, document.documentElement.scrollHeight);
+
+      listEl.classList.add("tickets-flying");
+
+      nodes.forEach((el, i) => {
+        const r = rects[i];
+        const fx = r.left;
+        const fy = r.top;
+        const w = r.width;
+        const h = r.height;
+
+        // Góc trái-trên phiếu: ngẫu nhiên trong vùng rộng (có thể tràn ra ngoài viewport)
+        const sx = (Math.random() * 1.38 - 0.19) * vw - w * 0.5;
+        const sy = (Math.random() * 1.32 - 0.12) * docH - h * 0.5;
+        const rot = (Math.random() - 0.5) * 72;
+        const dx = sx - fx;
+        const dy = sy - fy;
+
+        el.style.setProperty("--fly-z", String(5 + Math.floor(Math.random() * 25)));
+        el.style.transition = "none";
+        el.style.willChange = "transform";
+        el.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rot}deg)`;
+      });
+
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          const stagger = 0.05;
+          const duration = 1.08;
+          const ease = "cubic-bezier(0.22, 0.99, 0.26, 1)";
+
+          nodes.forEach((el, i) => {
+            const delay = i * stagger;
+            el.style.transition = `transform ${duration}s ${ease} ${delay}s`;
+            el.style.transform = "translate3d(0, 0, 0) rotate(0deg)";
+          });
+
+          const totalMs = (nodes.length - 1) * stagger * 1000 + duration * 1000 + 180;
+          window.setTimeout(() => {
+            nodes.forEach((el) => {
+              el.style.removeProperty("transition");
+              el.style.removeProperty("transform");
+              el.style.removeProperty("will-change");
+              el.style.removeProperty("--fly-z");
+            });
+            listEl.classList.remove("tickets-flying");
+          }, totalMs);
+        });
+      });
+    }
+
+    function scheduleTicketsEntrance() {
+      if (ticketsEntranceDone) return;
+      if (prefersReducedMotion()) {
+        ticketsEntranceDone = true;
+        return;
+      }
+      if (entranceDebounce !== null) {
+        window.clearTimeout(entranceDebounce);
+      }
+      entranceDebounce = window.setTimeout(() => {
+        entranceDebounce = null;
+        if (ticketsEntranceDone || prefersReducedMotion()) return;
+        const n = listEl.querySelectorAll(".ticket").length;
+        if (n === 0) return;
+        ticketsEntranceDone = true;
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(runTicketsScatterSettle);
+        });
+      }, 100);
+    }
+
+    function render() {
+      const items = load().sort((a, b) => new Date(b.at) - new Date(a.at));
+      listEl.innerHTML = "";
+      emptyEl.hidden = items.length > 0;
+      if (items.length === 0) {
+        ticketsEntranceDone = false;
+      }
+
+      for (const item of items) {
+        const li = document.createElement("li");
+        li.className = "ticket";
+        if (lastAddedId && item.id === lastAddedId) {
+          li.classList.add("ticket--pop");
+        }
+
+        const time = document.createElement("div");
+        time.className = "time";
+        time.textContent = formatViDateTime(item.at);
+
+        const note = document.createElement("div");
+        note.className = "note";
+        note.textContent = item.note.trim() || "(Không ghi chú)";
+
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "del";
+        del.setAttribute("aria-label", "Xoá mục này");
+        del.textContent = "Xoá";
+        del.dataset.id = item.id;
+
+        li.appendChild(time);
+        li.appendChild(note);
+        li.appendChild(del);
+        listEl.appendChild(li);
+      }
+
+      if (lastAddedId) {
+        const id = lastAddedId;
+        window.setTimeout(() => {
+          if (lastAddedId === id) lastAddedId = null;
+        }, 600);
+      }
+
+      if (items.length > 0) {
+        scheduleTicketsEntrance();
+      }
+    }
+
+    /** Đang chạy animation xoá — tránh bấm chồng. */
+    let deleteInFlight = false;
+
+    listEl.addEventListener("click", (e) => {
+      const t = e.target;
+      if (!(t instanceof HTMLElement)) return;
+      const btn = t.closest("button.del");
+      if (!btn) return;
+      const id = btn.dataset.id;
+      if (!id) return;
+      const li = btn.closest("li.ticket");
+      if (!li || !(li instanceof HTMLElement)) return;
+      if (li.classList.contains("ticket--leave")) return;
+      if (deleteInFlight) return;
+
+      const applyDelete = () => {
+        const next = load().filter((x) => x.id !== id);
+        mirrorLocal(next);
+        if (serverOk) void serverPutAll(next);
+        render();
+      };
+
+      if (prefersReducedMotion()) {
+        applyDelete();
+        return;
+      }
+
+      deleteInFlight = true;
+      listEl.classList.add("tickets-flying");
+
+      let committed = false;
+      const commit = () => {
+        if (committed) return;
+        committed = true;
+        deleteInFlight = false;
+        listEl.classList.remove("tickets-flying");
+        applyDelete();
+      };
+
+      li.classList.add("ticket--leave");
+
+      const onAnimEnd = (ev) => {
+        if (ev.target !== li) return;
+        const n = ev.animationName || "";
+        if (!n.includes("ticket-leave")) return;
+        li.removeEventListener("animationend", onAnimEnd);
+        commit();
+      };
+
+      li.addEventListener("animationend", onAnimEnd);
+      window.setTimeout(() => {
+        li.removeEventListener("animationend", onAnimEnd);
+        if (li.classList.contains("ticket--leave")) commit();
+      }, 480);
+    });
+
+    function addEntry() {
+      const note = noteEl.value.trim();
+      if (!note) {
+        noteEl.focus();
+        return;
+      }
+      const item = {
+        id: crypto.randomUUID(),
+        at: new Date().toISOString(),
+        note,
+      };
+      const items = [item, ...load()];
+      lastAddedId = item.id;
+      mirrorLocal(items);
+      if (serverOk) {
+        void serverAppend(item).then((ok) => {
+          if (!ok) serverOk = false;
+        });
+      }
+      noteEl.value = "";
+      noteEl.focus();
+      render();
+    }
+
+    addBtn.addEventListener("click", addEntry);
+    noteEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        addEntry();
+      }
+    });
+
+    document.getElementById("clearDraft").addEventListener("click", () => {
+      noteEl.value = "";
+      noteEl.focus();
+    });
+
+    render();
+
+    (async function reconcileDiskAndLocal() {
+      await restoreDiskHandle();
+      await probeServer();
+
+      const fromSrv = serverOk ? (await fetchServerEntries()) ?? [] : [];
+      const fromRealDisk = await readDiskJson();
+      const fromOpfs = await opfsRead();
+      const fromLs = load();
+
+      const m0 = mergeById(mergeById(fromLs, fromOpfs ?? []), fromRealDisk ?? []);
+      const merged = serverOk ? mergeById(m0, fromSrv) : m0;
+
+      const norm = (arr) =>
+        JSON.stringify([...arr].sort((x, y) => x.id.localeCompare(y.id)));
+      if (norm(merged) !== norm(fromLs)) {
+        mirrorLocal(merged);
+        if (serverOk && norm(merged) !== norm(fromSrv)) {
+          await serverPutAll(merged);
+        }
+        render();
+      } else if (!serverOk && fromOpfs == null && fromLs.length > 0) {
+        await opfsWrite(fromLs);
+      } else if (diskHandle && fromRealDisk == null && fromLs.length > 0) {
+        await writeDisk(fromLs);
+      }
+    })();
+  </script>
+</body>
+</html>

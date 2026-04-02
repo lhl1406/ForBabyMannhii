@@ -1,0 +1,7 @@
+{
+  "name": "forthebeautiful",
+  "private": true,
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}
