@@ -1,6 +1,7 @@
 {
   "name": "forthebeautiful",
   "private": true,
+  "type": "module",
   "scripts": {
     "start": "node --import ./load-env.mjs server.mjs"
   },
