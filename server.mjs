@@ -1,15 +1,13 @@
-import { createClient } from "@libsql/client";
 import http from "node:http";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createEntriesBackend } from "./entries-store.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname);
 const DATA = path.join(ROOT, "phieu-be-ngoan-data.jsonl");
-const PORT_START = Number(process.env.PORT) || 3333;
-const PORT_TRY_MAX = 30;
-let listenPort = PORT_START;
+const backend = createEntriesBackend(ROOT);
 
 const TURSO_URL = (
   process.env.TURSO_DATABASE_URL ||
@@ -17,102 +15,10 @@ const TURSO_URL = (
   ""
 ).trim();
 const TURSO_TOKEN = (process.env.TURSO_AUTH_TOKEN || "").trim();
-const useTurso = Boolean(TURSO_URL && TURSO_TOKEN);
 
-/** @type {import("@libsql/client").Client | null} */
-let turso = null;
-
-async function initTurso() {
-  if (!useTurso) return;
-  turso = createClient({ url: TURSO_URL, authToken: TURSO_TOKEN });
-  await turso.execute(`
-    CREATE TABLE IF NOT EXISTS phieu_entries (
-      id TEXT PRIMARY KEY NOT NULL,
-      at TEXT NOT NULL,
-      note TEXT NOT NULL
-    )
-  `);
-}
-
-/** @returns {Promise<{ id: string, at: string, note: string }[]>} */
-async function readAllEntries() {
-  if (turso) {
-    const r = await turso.execute(
-      "SELECT id, at, note FROM phieu_entries ORDER BY at DESC"
-    );
-    return r.rows.map((row) => ({
-      id: String(row.id ?? ""),
-      at: String(row.at ?? ""),
-      note: String(row.note ?? ""),
-    }));
-  }
-  let raw;
-  try {
-    raw = await fs.readFile(DATA, "utf8");
-  } catch (e) {
-    if (e && e.code === "ENOENT") return [];
-    throw e;
-  }
-  const out = [];
-  const seen = new Set();
-  for (const line of raw.split("\n")) {
-    const t = line.trim();
-    if (!t) continue;
-    try {
-      const o = JSON.parse(t);
-      if (o && typeof o.id === "string" && !seen.has(o.id)) {
-        seen.add(o.id);
-        out.push({
-          id: o.id,
-          at: typeof o.at === "string" ? o.at : "",
-          note: typeof o.note === "string" ? o.note : "",
-        });
-      }
-    } catch {
-      /* bỏ qua dòng hỏng */
-    }
-  }
-  return out;
-}
-
-/** @param {{ id: string, at: string, note: string }} entry */
-async function appendEntry(entry) {
-  if (turso) {
-    await turso.execute({
-      sql: `INSERT INTO phieu_entries (id, at, note) VALUES (?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-              at = excluded.at,
-              note = excluded.note`,
-      args: [entry.id, entry.at, entry.note],
-    });
-    return;
-  }
-  const line = JSON.stringify(entry) + "\n";
-  await fs.appendFile(DATA, line, "utf8");
-}
-
-/** @param {{ id: string, at: string, note: string }[]} items */
-async function writeAllEntries(items) {
-  if (turso) {
-    const tx = await turso.transaction("write");
-    try {
-      await tx.execute({ sql: "DELETE FROM phieu_entries", args: [] });
-      for (const x of items) {
-        await tx.execute({
-          sql: "INSERT INTO phieu_entries (id, at, note) VALUES (?, ?, ?)",
-          args: [x.id, x.at, x.note],
-        });
-      }
-      await tx.commit();
-    } finally {
-      tx.close();
-    }
-    return;
-  }
-  const body =
-    items.map((x) => JSON.stringify(x)).join("\n") + (items.length ? "\n" : "");
-  await fs.writeFile(DATA, body, "utf8");
-}
+const PORT_START = Number(process.env.PORT) || 3333;
+const PORT_TRY_MAX = 30;
+let listenPort = PORT_START;
 
 /** @param {import('node:http').ServerResponse} res */
 function sendJson(res, status, obj) {
@@ -163,7 +69,7 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === "/api/entries") {
     try {
       if (req.method === "GET") {
-        const items = await readAllEntries();
+        const items = await backend.readAllEntries();
         sendJson(res, 200, items);
         return;
       }
@@ -173,7 +79,7 @@ const server = http.createServer(async (req, res) => {
           sendJson(res, 400, { error: "invalid body" });
           return;
         }
-        await appendEntry({
+        await backend.appendEntry({
           id: body.id,
           at: body.at,
           note: typeof body.note === "string" ? body.note : "",
@@ -190,7 +96,7 @@ const server = http.createServer(async (req, res) => {
         const cleaned = body.filter(
           (x) => x && typeof x.id === "string" && typeof x.at === "string"
         );
-        await writeAllEntries(
+        await backend.writeAllEntries(
           cleaned.map((x) => ({
             id: x.id,
             at: x.at,
@@ -252,7 +158,7 @@ function logReady() {
   const p =
     addr && typeof addr === "object" && "port" in addr ? addr.port : listenPort;
   console.log(`Mở trình duyệt: http://localhost:${p}`);
-  if (turso) {
+  if (backend.usesTurso) {
     console.log("Lưu trữ: Turso (bảng phieu_entries)");
   } else {
     console.log(`File dữ liệu (tự tạo khi tích đầu tiên): ${DATA}`);
@@ -283,7 +189,8 @@ server.on("error", (err) => {
   process.exit(1);
 });
 
-initTurso()
+backend
+  .init()
   .then(() => {
     server.listen(listenPort, logReady);
   })
