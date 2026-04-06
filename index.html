@@ -488,35 +488,27 @@
       animation: ticket-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
-    @keyframes ticket-leave {
-      from {
-        opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1);
-        filter: blur(0);
-      }
-      to {
-        opacity: 0;
-        transform: translate3d(32px, -18px, 0) scale(0.88) rotate(6deg);
-        filter: blur(1.5px);
-      }
+    .ticket.ticket--archived {
+      opacity: 0.48;
+      filter: grayscale(0.88);
+      border-style: solid;
+      border-color: rgba(110, 118, 135, 0.38);
+      box-shadow: 0 4px 14px rgba(74, 63, 85, 0.08);
     }
 
-    .ticket.ticket--leave {
-      transition: none !important;
-      pointer-events: none;
-      z-index: 5;
-      animation: ticket-leave 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-      will-change: transform, opacity, filter;
+    .ticket.ticket--archived:hover {
+      transform: translateY(-1px);
+      opacity: 0.55;
+      box-shadow: 0 6px 18px rgba(74, 63, 85, 0.1);
     }
 
-    .ticket.ticket--leave::after {
+    .ticket.ticket--archived::after {
+      opacity: 0.28;
       animation: none;
-      opacity: 0.5;
     }
 
-    .ticket.ticket--leave:hover {
-      transform: translate3d(0, 0, 0) scale(1);
-      box-shadow: 0 6px 24px rgba(255, 150, 180, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    .ticket.ticket--archived .time {
+      color: rgba(74, 63, 85, 0.55);
     }
 
     .ticket .time {
@@ -556,6 +548,24 @@
 
     .ticket .del:hover {
       background: var(--accent);
+      color: #fff;
+      transform: scale(1.05);
+    }
+
+    .ticket .restore {
+      padding: 0.4rem 0.65rem;
+      font-size: 0.78rem;
+      background: rgba(90, 180, 140, 0.2);
+      color: var(--leaf);
+      border-radius: 999px;
+      align-self: start;
+      font-weight: 700;
+      border: 2px solid rgba(90, 180, 140, 0.35);
+      transition: background 0.2s, color 0.2s, transform 0.2s;
+    }
+
+    .ticket .restore:hover {
+      background: var(--leaf);
       color: #fff;
       transform: scale(1.05);
     }
@@ -617,13 +627,6 @@
       .ticket--pop {
         animation: none !important;
       }
-
-      .ticket.ticket--leave {
-        animation: none !important;
-        opacity: 0;
-        transform: none;
-        filter: none;
-      }
     }
   </style>
 </head>
@@ -660,6 +663,11 @@
 
   <script>
     const STORAGE_KEY = "phieu-be-ngoan-v1";
+    /**
+     * Tiền tố trong `note` để đánh dấu phiếu đã ẩn (không thêm cột DB).
+     * Toàn ký tự tổ hợp (word joiner…) — gần như không hiện trên Sheet/UI ngoài.
+     */
+    const NOTE_ARCHIVED_PREFIX = "\u2060\u2061\u2062";
     /** Tên file trong OPFS (bản ẩn trình duyệt). */
     const BACKUP_FILE = "phieu-be-ngoan-data.json";
 
@@ -828,6 +836,28 @@
       }
     }
 
+    /** @param {{ note: string }} e */
+    function entryIsArchived(e) {
+      return typeof e.note === "string" && e.note.startsWith(NOTE_ARCHIVED_PREFIX);
+    }
+
+    /** @param {{ note: string }} e */
+    function entryVisibleNote(e) {
+      return entryIsArchived(e) ? e.note.slice(NOTE_ARCHIVED_PREFIX.length) : e.note;
+    }
+
+    /** @param {{ id: string, at: string, note: string }} e */
+    function entryArchived(e) {
+      if (entryIsArchived(e)) return e;
+      return { ...e, note: NOTE_ARCHIVED_PREFIX + entryVisibleNote(e) };
+    }
+
+    /** @param {{ id: string, at: string, note: string }} e */
+    function entryUnarchived(e) {
+      if (!entryIsArchived(e)) return e;
+      return { ...e, note: entryVisibleNote(e) };
+    }
+
     /** @param {{ id: string, at: string, note: string }[]} a @param {typeof a} b */
     function mergeById(a, b) {
       const m = new Map();
@@ -967,7 +997,7 @@
 
     /** @type {string | null} */
     let lastAddedId = null;
-    /** Đã chạy hiệu ứng “rơi → xếp” trong phiên này (reset khi xoá hết phiếu). */
+    /** Đã chạy hiệu ứng “rơi → xếp” trong phiên này (reset khi danh sách trống). */
     let ticketsEntranceDone = false;
     /** @type {ReturnType<typeof setTimeout> | null} */
     let entranceDebounce = null;
@@ -1060,7 +1090,12 @@
     }
 
     function render() {
-      const items = load().sort((a, b) => new Date(b.at) - new Date(a.at));
+      const items = load().sort((a, b) => {
+        const ar = entryIsArchived(a) ? 1 : 0;
+        const br = entryIsArchived(b) ? 1 : 0;
+        if (ar !== br) return ar - br;
+        return new Date(b.at) - new Date(a.at);
+      });
       listEl.innerHTML = "";
       emptyEl.hidden = items.length > 0;
       if (items.length === 0) {
@@ -1068,9 +1103,11 @@
       }
 
       for (const item of items) {
+        const archived = entryIsArchived(item);
         const li = document.createElement("li");
         li.className = "ticket";
-        if (lastAddedId && item.id === lastAddedId) {
+        if (archived) li.classList.add("ticket--archived");
+        if (lastAddedId && item.id === lastAddedId && !archived) {
           li.classList.add("ticket--pop");
         }
 
@@ -1080,18 +1117,25 @@
 
         const note = document.createElement("div");
         note.className = "note";
-        note.textContent = item.note.trim() || "(Không ghi chú)";
+        const vis = entryVisibleNote(item).trim();
+        note.textContent = vis || "(Không ghi chú)";
 
-        const del = document.createElement("button");
-        del.type = "button";
-        del.className = "del";
-        del.setAttribute("aria-label", "Xoá mục này");
-        del.textContent = "Xoá";
-        del.dataset.id = item.id;
+        const action = document.createElement("button");
+        action.type = "button";
+        action.dataset.id = item.id;
+        if (archived) {
+          action.className = "restore";
+          action.setAttribute("aria-label", "Khôi phục phiếu đã ẩn");
+          action.textContent = "Khôi phục";
+        } else {
+          action.className = "del";
+          action.setAttribute("aria-label", "Ẩn phiếu (làm mờ, vẫn lưu trong dữ liệu)");
+          action.textContent = "Ẩn";
+        }
 
         li.appendChild(time);
         li.appendChild(note);
-        li.appendChild(del);
+        li.appendChild(action);
         listEl.appendChild(li);
       }
 
@@ -1107,23 +1151,16 @@
       }
     }
 
-    /** Đang chạy animation xoá — tránh bấm chồng. */
-    let deleteInFlight = false;
-
     listEl.addEventListener("click", (e) => {
       const t = e.target;
       if (!(t instanceof HTMLElement)) return;
-      const btn = t.closest("button.del");
+      const btn = t.closest("button.del, button.restore");
       if (!btn) return;
       const id = btn.dataset.id;
       if (!id) return;
-      const li = btn.closest("li.ticket");
-      if (!li || !(li instanceof HTMLElement)) return;
-      if (li.classList.contains("ticket--leave")) return;
-      if (deleteInFlight) return;
 
-      const applyDelete = async () => {
-        const next = load().filter((x) => x.id !== id);
+      const doArchive = async () => {
+        const next = load().map((x) => (x.id === id ? entryArchived(x) : x));
         mirrorLocal(next);
         await probeServer();
         if (serverOk) void serverPutAll(next);
@@ -1132,38 +1169,21 @@
         render();
       };
 
-      if (prefersReducedMotion()) {
-        void applyDelete();
+      const doRestore = async () => {
+        const next = load().map((x) => (x.id === id ? entryUnarchived(x) : x));
+        mirrorLocal(next);
+        await probeServer();
+        if (serverOk) void serverPutAll(next);
+        const g = getSheetConfig();
+        if (g.url && g.secret) void sheetReplaceAll(next);
+        render();
+      };
+
+      if (btn.classList.contains("restore")) {
+        void doRestore();
         return;
       }
-
-      deleteInFlight = true;
-      listEl.classList.add("tickets-flying");
-
-      let committed = false;
-      const commit = () => {
-        if (committed) return;
-        committed = true;
-        deleteInFlight = false;
-        listEl.classList.remove("tickets-flying");
-        void applyDelete();
-      };
-
-      li.classList.add("ticket--leave");
-
-      const onAnimEnd = (ev) => {
-        if (ev.target !== li) return;
-        const n = ev.animationName || "";
-        if (!n.includes("ticket-leave")) return;
-        li.removeEventListener("animationend", onAnimEnd);
-        commit();
-      };
-
-      li.addEventListener("animationend", onAnimEnd);
-      window.setTimeout(() => {
-        li.removeEventListener("animationend", onAnimEnd);
-        if (li.classList.contains("ticket--leave")) commit();
-      }, 480);
+      void doArchive();
     });
 
     async function addEntry() {
